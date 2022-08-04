@@ -4,7 +4,41 @@
 **AWS Services**: <br>
 API Gateway, Lambda, EventBridge, KinesisFirehose, S3
 
-# Welcome to your CDK Python project!
+* [Architecture](#architecture)
+* [Testing the app](#testing-the-app)
+* [Sources](#sources)
+
+## Architecture 
+
+Creates an API Gateway with a POST Method, a Lambda as a data Producer, EventBridge that can
+route to different AWS services based on the Rule, two Lambda functions for consumption of data
+based on different Rules, and a Kinsesis Firehose that takes data from EventBrdige based on Rule 
+to store data in to S3 bucket every 60 seconds.<br>
+
+Requests to the API are sent to EventBridge using the producer Lambda, which triggers the Consumer 
+Lambda functions and Kinesis Firehose based on the Rule. 
+
+![](/resources/architecture.png)
+
+### Testing the App
+
+Upon successful deployment, you should see an API Gateway REST API in the AWS Account. It can be 
+tested from the console or the AWS CLI
+
+#### CLI
+```shell
+aws apigateway test-invoke-method --rest-api-id <API ID> --resource-id <RESOURCE ID> --http-method POST --body {"item1":"123","item2":"234"}
+```
+
+#### Console
+TODO...
+
+### Sources
+
+* [api-eventbridge-lambda](https://github.com/aws-samples/aws-cdk-examples/tree/master/python/api-eventbridge-lambda)
+
+
+### Welcome to your CDK Python project!
 
 This is a blank project for CDK development with Python.
 
@@ -61,3 +95,5 @@ command.
  * `cdk docs`        open CDK documentation
 
 Enjoy!
+
+
