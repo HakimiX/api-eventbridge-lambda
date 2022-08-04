@@ -1,4 +1,8 @@
 
+# api-eventbridge-lambda
+
+**AWS Services**: API Gateway, Lambda, EventBridge, KinesisFirehose, S3
+
 # Welcome to your CDK Python project!
 
 This is a blank project for CDK development with Python.
