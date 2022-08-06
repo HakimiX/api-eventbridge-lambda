@@ -31,7 +31,7 @@ class ApiEventbridgeLambdaStack(Stack):
         event_producer_lambda.add_to_role_policy(event_policy)
 
         """
-        Consumer Lambda function #1 with event rule so it can receive events from EventBridge. 
+        Consumer Lambda function #1 with event rule that targets the consumer Lambda #1
         """
         event_consumer1_lambda = aws_lambda.Function(self, 'eventConsumer1Lambda',
                                                      runtime=aws_lambda.Runtime.PYTHON_3_8,
@@ -41,7 +41,24 @@ class ApiEventbridgeLambdaStack(Stack):
         event_consumer1_rule = events.Rule(self, 'eventConsumerLambdaRule',
                                            description="Approved transaction",
                                            event_pattern=events.EventPattern(source=['com.mycompany.myapp']))
+        # Event rule target consumer Lambda #1
+        event_consumer1_rule.add_target(
+            targets.LambdaFunction(handler=event_consumer1_lambda))
 
-        event_consumer1_rule.add_target(targets.LambdaFunction(handler=event_consumer1_lambda))
+        """
+        Consumer Lambda function #2 with event rule that targets the consumer Lambda #2
+        """
+        event_consumer2_lambda = aws_lambda.Function(self, 'eventConsumer2Lambda',
+                                            runtime=aws_lambda.Runtime.PYTHON_3_8,
+                                            handler='event_consumer_lambda.lambda_handler',
+                                            code=aws_lambda.Code.from_asset('lambda'))
+
+        # Event rule
+        event_consumer2_rule = events.Rule(self, 'eventConsumer2LambdaRule',
+                                           description='Approved Transactions',
+                                           event_pattern=events.EventPattern(source=['com.mycompany.myapp']))
+
+        # Event rule target consumer Lambda #2
+        event_consumer2_rule.add_target(targets.LambdaFunction(handler=event_consumer2_lambda))
 
         
