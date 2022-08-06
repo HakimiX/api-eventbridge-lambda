@@ -5,6 +5,7 @@ from aws_cdk import (
     aws_events_targets as targets,
     aws_s3 as s3,
     aws_kinesisfirehose as _firehose,
+    aws_apigateway as api_gw,
     Stack,
 )
 from constructs import Construct
@@ -107,3 +108,17 @@ class ApiEventbridgeLambdaStack(Stack):
         # Event Rule target KinesisFirehose
         event_consumer3_rule.add_target(targets.KinesisFirehoseStream(
             stream=event_consumer3_kinesisFirehose))
+
+        """
+        API Gateway 
+        defines an API Gateway REST API 
+        """
+
+        api = api_gw.LambdaRestApi(self, 'sampleAPIEventBridgeMultiConsumer',
+        handler=event_producer_lambda,
+        proxy=False)
+
+        # API Gateway endpoint and HTTP method
+        items = api.root.add_resource('items')
+        items.add_method('POST')
+
