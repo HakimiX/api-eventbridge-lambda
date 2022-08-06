@@ -3,6 +3,8 @@ from aws_cdk import (
     aws_iam as iam,
     aws_events as events,
     aws_events_targets as targets,
+    aws_s3 as s3,
+    aws_kinesisfirehose as _firehose,
     Stack,
 )
 from constructs import Construct
@@ -31,6 +33,7 @@ class ApiEventbridgeLambdaStack(Stack):
         event_producer_lambda.add_to_role_policy(event_policy)
 
         """
+        Approved Consumer 1.
         Consumer Lambda function #1 with event rule that targets the consumer Lambda #1
         """
         event_consumer1_lambda = aws_lambda.Function(self, 'eventConsumer1Lambda',
@@ -46,12 +49,13 @@ class ApiEventbridgeLambdaStack(Stack):
             targets.LambdaFunction(handler=event_consumer1_lambda))
 
         """
+        Approved Consumer 2.
         Consumer Lambda function #2 with event rule that targets the consumer Lambda #2
         """
         event_consumer2_lambda = aws_lambda.Function(self, 'eventConsumer2Lambda',
-                                            runtime=aws_lambda.Runtime.PYTHON_3_8,
-                                            handler='event_consumer_lambda.lambda_handler',
-                                            code=aws_lambda.Code.from_asset('lambda'))
+                                                     runtime=aws_lambda.Runtime.PYTHON_3_8,
+                                                     handler='event_consumer_lambda.lambda_handler',
+                                                     code=aws_lambda.Code.from_asset('lambda'))
 
         # Event rule
         event_consumer2_rule = events.Rule(self, 'eventConsumer2LambdaRule',
@@ -59,6 +63,47 @@ class ApiEventbridgeLambdaStack(Stack):
                                            event_pattern=events.EventPattern(source=['com.mycompany.myapp']))
 
         # Event rule target consumer Lambda #2
-        event_consumer2_rule.add_target(targets.LambdaFunction(handler=event_consumer2_lambda))
+        event_consumer2_rule.add_target(
+            targets.LambdaFunction(handler=event_consumer2_lambda))
 
-        
+        """
+        Approved Consumer 3.
+        KinesisFirehose received event from EventBridge and stores the data in S3 bucket every 60 seconds.
+        """
+
+        # S3 bucket for KinesisFirehose destination
+        ingest_bucket = s3.Bucket(self, 'test-ingest-bucket')
+
+        # IAM role for KinesisFirehose
+        firehose_role = iam.Role(self, 'kinesisFirehoseRole',
+                                 assumed_by=iam.ServicePrincipal('firehose.amazonaws.com'))
+
+        # Create and attach policy the gives permission to write in to the S3 bucket (test-ingest-bucket)
+        iam.Policy(
+            self, 's3_attr',
+            policy_name='s3kinesis',
+            statements=[iam.PolicyStatement(
+                actions=['s3:*'],
+                resources=['arn:aws:s3:::' + ingest_bucket.bucket_name + '/*'])],
+            roles=[firehose_role],
+        )
+
+        # KinsesisFirehose delivery stream -> S3 bucket
+        event_consumer3_kinesisFirehose = _firehose.CfnDeliveryStream(self, 'consumer3firehose',
+                                                                      s3_destination_configuration=_firehose.CfnDeliveryStream.S3DestinationConfigurationProperty(
+                                                                          bucket_arn=ingest_bucket.bucket_arn,
+                                                                          buffering_hints=_firehose.CfnDeliveryStream.BufferingHintsProperty(
+                                                                              interval_in_seconds=60
+                                                                          ),
+                                                                          compression_format='UNCOMPRESSED',
+                                                                          role_arn=firehose_role.role_arn
+                                                                      ))
+
+        # Event Rule
+        event_consumer3_rule = events.Rule(self, 'eventConsumer3KinesisRule',
+                                           description='Approved transactions',
+                                           event_pattern=events.EventPattern(source=['com.mycompany.myapp']))
+
+        # Event Rule target KinesisFirehose
+        event_consumer3_rule.add_target(targets.KinesisFirehoseStream(
+            stream=event_consumer3_kinesisFirehose))
