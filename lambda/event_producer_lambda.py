@@ -28,7 +28,7 @@ def lambda_handler(event, context):
       eventbridge_event
     ]
   )
-  logger.inof(response)
+  logger.info(response)
 
   # Return success response to API Gateway
   return {
